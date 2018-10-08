@@ -1,0 +1,4 @@
+database:
+  url: "jdbc:oracle:thin:@localhost:49161:xe"
+  userName: "hr"
+  password: "password"
