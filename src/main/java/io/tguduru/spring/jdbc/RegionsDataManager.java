@@ -11,10 +11,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
-import io.tguduru.spring.jdbc.db.DatabaseResource;
 import io.tguduru.spring.jdbc.entity.Region;
 
 /**
@@ -30,13 +27,14 @@ public class RegionsDataManager {
         jdbcTemplate = new NamedParameterJdbcTemplate(dataSource);
     }
 
-    public static void main(String[] args) throws SQLException {
-        SingleConnectionDataSource connection = DatabaseResource.getInstance().getConnection();
-        Region region = new Region(4, "Middle East and Africa");
-        RegionsWriter regionsWriter = new RegionsWriter(region, connection);
-        ExecutorService executorService = Executors.newSingleThreadExecutor();
-        executorService.submit(regionsWriter);
-        executorService.shutdown();
+    public Optional<Integer> update(Region region) {
+        String sql = "UPDATE regions SET region_name=:regionName where region_id = :regionId";
+        NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(dataSource);
+        MapSqlParameterSource sqlParameterSource = new MapSqlParameterSource();
+        sqlParameterSource.addValue("regionId", region.getId());
+        sqlParameterSource.addValue("regionName", region.getName());
+        int rowsUpdated = jdbcTemplate.update(sql, sqlParameterSource);
+        return Optional.of(rowsUpdated);
     }
 
     public Optional<List<Region>> getReqions() {
@@ -61,6 +59,14 @@ public class RegionsDataManager {
                 mapSqlParameterSource, (rs, rowNum) -> new Region(rs.getLong(1), rs.getString(2)));
 
         return Optional.of(region);
+    }
+
+    public void selectForUpdate(long regionId) {
+        MapSqlParameterSource mapSqlParameterSource = new MapSqlParameterSource();
+        mapSqlParameterSource.addValue("regionId", regionId);
+        jdbcTemplate.queryForObject("SELECT * from REGIONS WHERE region_id = :regionId FOR UPDATE",
+                mapSqlParameterSource, (rs, rowNum) -> new Region(rs.getLong(1), rs.getString(2)));
+
     }
 
     public Optional<Boolean> deleteReqion(Long id) {
